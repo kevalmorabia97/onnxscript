@@ -144,6 +144,11 @@ same type as some other (non-constant) operand. For example, the expression
 ``2 * X`` is expanded to ``op.CastLike(2, X) * X``, which allows the same
 code to work for different types of ``X``.
 
+*Control-Flow*
+
+The support for control-flow constructs in |onnxscript| is limited by
+requirements of ONNX control-flow ops.
+
 **Conditional statements**
 
 The function definition below illustrates the use of conditionals.
