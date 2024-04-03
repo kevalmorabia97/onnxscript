@@ -7,8 +7,8 @@ from typing import Sequence
 
 import onnx
 
-from onnxscript import ir
-from onnxscript.ir import visitor
+import onnxscript._legacy_ir as ir
+from onnxscript._legacy_ir import visitor
 from onnxscript.optimizer import remove_unused
 
 logger = logging.getLogger(__name__)

@@ -10,8 +10,8 @@ import onnx
 import onnx.numpy_helper
 import onnx.printer
 
-from onnxscript import ir
-from onnxscript.ir import irbuilder
+import onnxscript._legacy_ir as ir
+from onnxscript._legacy_ir import irbuilder
 
 # Overview of the pattern module: The classes below are used to define both
 # patterns (that we search for) and replacements for rewrite rules.
