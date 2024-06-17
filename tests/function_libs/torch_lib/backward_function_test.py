@@ -245,8 +245,8 @@ class TestOperatorsOnnxrt(unittest.TestCase):
         training=None,
         input_index=None,
     ):
-        if sys.platform == "win32":
-            raise unittest.SkipTest("Windows not supported yet.")
+        # if sys.platform == "win32":
+        #     raise unittest.SkipTest("Windows not supported yet.")
         assert isinstance(onnx_export, str), f"Export onnx is wrong for f={f}"
         if isinstance(args, torch.Tensor):
             args = [args]
