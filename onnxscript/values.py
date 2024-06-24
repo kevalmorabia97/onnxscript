@@ -119,7 +119,7 @@ class Opset:
         # TODO: validate the op schema as 'None' values are removed?
         input_list = list(inputs)
         while input_list and input_list[-1] is None:
-            del input_list[-1]
+            input_list.pop()
         return input_list
 
 
@@ -526,6 +526,9 @@ class OnnxFunction(Op):
         from onnxscript import evaluator  # pylint: disable=import-outside-toplevel
 
         return evaluator.default().eval_function(self, args, kwargs)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.function!r})"
 
     def param_schemas(self) -> tuple[ParamSchema, ...]:
         """Returns the parameter schemas of this function."""

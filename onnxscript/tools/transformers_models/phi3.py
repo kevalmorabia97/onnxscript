@@ -1,8 +1,7 @@
-# -------------------------------------------------------------------------
-# Copyright (c) Microsoft Corporation. All rights reserved.
+# Copyright (c) Microsoft Corporation
 # Licensed under the MIT License.
-# --------------------------------------------------------------------------
 # pylint: disable=import-outside-toplevel
+
 from __future__ import annotations
 
 from typing import Any, Sequence
@@ -10,6 +9,17 @@ from typing import Any, Sequence
 import torch
 
 import onnxscript.tools.transformers_models
+
+
+def has_phi3() -> bool:
+    """Tells if package *transformers* contains the phi3 model."""
+    try:
+        from transformers import Phi3Config
+
+        assert Phi3Config
+    except ImportError:
+        return False
+    return True
 
 
 def _prepare_config_and_inputs(
@@ -66,7 +76,7 @@ def _prepare_config_and_inputs(
     )
 
 
-def get_phi_model(
+def get_phi3_model(
     input_dims: Sequence[tuple[int, int]] = ((13, 7), (14, 7), (15, 8)),
     hidden_size: int = 32,
     num_hidden_layers: int = 2,
@@ -85,14 +95,13 @@ def get_phi_model(
     The parameters are chosen for a unit test configuration from `test_modeling_phi.py
     <https://github.com/huggingface/transformers/blob/main/tests/models/phi/test_modeling_phi.py>`_.
     """
-    from transformers import PhiConfig
-    from transformers.models.phi.modeling_phi import PhiModel
+    from transformers import Phi3Config, Phi3Model
 
     dynamic_shapes = {0: {0: "batch", 1: "length"}}
     if with_mask:
         dynamic_shapes.update({1: {0: "batch", 1: "length"}})
 
-    config = PhiConfig(
+    config = Phi3Config(
         hidden_size=hidden_size,
         num_hidden_layers=num_hidden_layers,
         vocab_size=vocab_size,
@@ -100,22 +109,23 @@ def get_phi_model(
         max_position_embeddings=max_position_embeddings,
         num_attention_heads=num_attention_heads,
         num_key_value_heads=num_key_value_heads,
+        pad_token_id=min(32000, vocab_size - 1),
     )
     if _attn_implementation:
         config._attn_implementation = _attn_implementation  # pylint: disable=protected-access
 
     if with_mask:
 
-        class PhiModelWrapper(torch.nn.Module):
+        class Phi3ModelWrapperNoMask(torch.nn.Module):
             def __init__(self, config):
                 super().__init__()
-                self.model = PhiModel(config)
+                self.model = Phi3Model(config)
 
             def forward(self, input_ids, attention_mask):
                 model_output = self.model(input_ids, attention_mask=attention_mask)
                 return model_output.to_tuple()
 
-        def generate_example_inputs(batch: int, seq: int, vocab_size: int):
+        def generate_example_inputs_no_mask(batch: int, seq: int, vocab_size: int):
             (
                 input_ids,
                 _,  # token_type_ids,
@@ -133,29 +143,30 @@ def get_phi_model(
 
         example_args_collection = []
         for b, s in input_dims:
-            example_args_collection.append(generate_example_inputs(b, s, vocab_size))
+            example_args_collection.append(generate_example_inputs_no_mask(b, s, vocab_size))
 
-        return PhiModelWrapper(config), example_args_collection, dynamic_shapes
+        return Phi3ModelWrapperNoMask(config), example_args_collection, dynamic_shapes
 
     # no mask
 
-    class PhiModelWrapperNoMask(torch.nn.Module):
+    class Phi3ModelWrapper(torch.nn.Module):
         def __init__(self, config):
             super().__init__()
-            self.model = PhiModel(config)
+            self.model = Phi3Model(config)
 
         def forward(self, input_ids):
             model_output = self.model(input_ids)
             return model_output.to_tuple()
 
-    def generate_example_inputs_no_mask(batch: int, seq: int, vocab_size: int):
+    def generate_example_inputs(batch: int, seq: int, vocab_size: int):
         (
             input_ids,
-            _,  # token_type_ids,
-            _,  # input_mask,
-            _,  # sequence_labels,
-            _,  # token_labels,
-            _,  # choice_labels,
+            *_,
+            # token_type_ids,
+            # input_mask,
+            # sequence_labels,
+            # token_labels,
+            # choice_labels,
         ) = _prepare_config_and_inputs(
             batch_size=batch,
             seq_length=seq,
@@ -166,12 +177,12 @@ def get_phi_model(
 
     example_args_collection = []
     for b, s in input_dims:
-        example_args_collection.append(generate_example_inputs_no_mask(b, s, vocab_size))
+        example_args_collection.append(generate_example_inputs(b, s, vocab_size))
 
-    return PhiModelWrapperNoMask(config), example_args_collection, dynamic_shapes
+    return Phi3ModelWrapper(config), example_args_collection, dynamic_shapes
 
 
-def get_phi_model_from_config(
+def get_phi3_model_from_config(
     warmup: int = 5,
     repeat: int = 10,
     config: str = "small",
@@ -243,4 +254,4 @@ def get_phi_model_from_config(
     else:
         raise ValueError(f"Unexpected configuration {config!r}.")
 
-    return get_phi_model(**conf_dict)  # type: ignore[arg-type]
+    return get_phi3_model(**conf_dict)  # type: ignore[arg-type]
